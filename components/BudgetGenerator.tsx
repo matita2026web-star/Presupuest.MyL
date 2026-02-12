@@ -1,8 +1,7 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  Search, Plus, Trash2, Save, FileText, User, 
-  Phone, Calendar, Info, Calculator, Percent, Tag, Hammer, HardHat
+  Search, Plus, Trash2, Save, User, 
+  Calculator, Percent, Tag, Hammer, HardHat 
 } from 'lucide-react';
 import { Product, Budget, BudgetOrderItem, ClientData, BusinessSettings } from '../types';
 
@@ -10,9 +9,10 @@ interface BudgetGeneratorProps {
   products: Product[];
   settings: BusinessSettings;
   onSave: (budget: Budget) => void;
+  initialData?: Budget | null; // AÑADIDO PARA EDICIÓN
 }
 
-const BudgetGenerator: React.FC<BudgetGeneratorProps> = ({ products, settings, onSave }) => {
+const BudgetGenerator: React.FC<BudgetGeneratorProps> = ({ products, settings, onSave, initialData }) => {
   const [client, setClient] = useState<ClientData>({ name: '', phone: '', observations: '' });
   const [items, setItems] = useState<BudgetOrderItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -22,6 +22,25 @@ const BudgetGenerator: React.FC<BudgetGeneratorProps> = ({ products, settings, o
   const [taxRate, setTaxRate] = useState<number>(settings.defaultTax);
   const [discount, setDiscount] = useState<number>(0);
   const [validDays, setValidDays] = useState<number>(15);
+
+  // EFECTO PARA CARGAR DATOS SI ES EDICIÓN
+  useEffect(() => {
+    if (initialData) {
+      setClient(initialData.client);
+      setItems(initialData.items);
+      setTaxRate(initialData.taxRate);
+      setDiscount(initialData.discount);
+      // Calculamos días restantes aproximadamente
+      const diff = new Date(initialData.validUntil).getTime() - new Date(initialData.date).getTime();
+      setValidDays(Math.ceil(diff / (1000 * 60 * 60 * 24)) || 15);
+    } else {
+      // Resetear si es nuevo
+      setClient({ name: '', phone: '', observations: '' });
+      setItems([]);
+      setTaxRate(settings.defaultTax);
+      setDiscount(0);
+    }
+  }, [initialData, settings.defaultTax]);
 
   const addItem = () => {
     const product = products.find(p => p.id === selectedProductId);
@@ -61,9 +80,10 @@ const BudgetGenerator: React.FC<BudgetGeneratorProps> = ({ products, settings, o
     const validUntil = new Date();
     validUntil.setDate(validUntil.getDate() + validDays);
 
-    const newBudget: Budget = {
-      id: `OBRA-${Date.now().toString().slice(-5)}`,
-      date: new Date().toISOString(),
+    const budgetData: Budget = {
+      // SI EDITAMOS: Usamos el mismo ID. SI ES NUEVO: Generamos uno.
+      id: initialData?.id || `OBRA-${Date.now().toString().slice(-5)}`,
+      date: initialData?.date || new Date().toISOString(),
       validUntil: validUntil.toISOString(),
       client,
       items,
@@ -71,10 +91,10 @@ const BudgetGenerator: React.FC<BudgetGeneratorProps> = ({ products, settings, o
       discount,
       subtotal,
       total,
-      status: 'pendiente'
+      status: initialData?.status || 'pendiente'
     };
 
-    onSave(newBudget);
+    onSave(budgetData);
   };
 
   const filteredProducts = products.filter(p => 
@@ -294,7 +314,7 @@ const BudgetGenerator: React.FC<BudgetGeneratorProps> = ({ products, settings, o
             className="w-full bg-orange-600 hover:bg-orange-500 text-white font-black py-6 rounded-2xl transition-all shadow-xl shadow-orange-900/40 flex items-center justify-center gap-4 uppercase italic tracking-tight active:scale-95"
           >
             <Save size={24} />
-            GUARDAR OBRA
+            {initialData ? 'ACTUALIZAR OBRA' : 'GUARDAR OBRA'}
           </button>
           
           <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 text-center">
