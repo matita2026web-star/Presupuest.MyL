@@ -20,10 +20,7 @@ const DEFAULT_SETTINGS: BusinessSettings = {
 export const storage = {
   getProducts: async (): Promise<Product[]> => {
     const { data, error } = await supabase.from('products').select('*');
-    if (error) {
-      console.error('Error fetching products:', error);
-      return [];
-    }
+    if (error) return [];
     return data || [];
   },
   
@@ -39,12 +36,7 @@ export const storage = {
 
   getBudgets: async (): Promise<Budget[]> => {
     const { data, error } = await supabase.from('budgets').select('*').order('date', { ascending: false });
-    if (error) {
-      console.error('Error fetching budgets:', error);
-      return [];
-    }
-    // Transformamos los campos JSON de snake_case a camelCase si es necesario, 
-    // o simplemente devolvemos si coinciden los nombres.
+    if (error) return [];
     return (data || []).map(b => ({
       ...b,
       validUntil: b.valid_until,
@@ -68,6 +60,12 @@ export const storage = {
     if (error) console.error('Error saving budget:', error);
   },
 
+  // FUNCIÓN AÑADIDA
+  deleteBudget: async (id: string) => {
+    const { error } = await supabase.from('budgets').delete().eq('id', id);
+    if (error) console.error('Error deleting budget:', error);
+  },
+
   updateBudgetStatus: async (id: string, status: BudgetStatus) => {
     const { error } = await supabase.from('budgets').update({ status }).eq('id', id);
     if (error) console.error('Error updating status:', error);
@@ -75,9 +73,7 @@ export const storage = {
 
   getSettings: async (): Promise<BusinessSettings> => {
     const { data, error } = await supabase.from('settings').select('data').eq('id', 'main').single();
-    if (error || !data) {
-      return DEFAULT_SETTINGS;
-    }
+    if (error || !data) return DEFAULT_SETTINGS;
     return data.data as BusinessSettings;
   },
 
