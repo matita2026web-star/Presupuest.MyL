@@ -1,247 +1,305 @@
 
 import React, { useState } from 'react';
-import { 
-  Search, Trash2, Send, Download, Calendar, 
-  Clock, AlertCircle, Edit3, ChevronRight, Compass, FileText
-} from 'lucide-react';
-import { Budget, BusinessSettings, BudgetStatus } from '../types';
+import { Search, Eye, Share2, Trash2, Send, Download, X, Calendar, User, FileCheck, HardHat, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Budget, BusinessSettings } from '../types';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 interface BudgetHistoryProps {
   budgets: Budget[];
   settings: BusinessSettings;
-  onDelete: (id: string) => void;
-  onUpdateStatus: (id: string, status: BudgetStatus) => void;
-  onEdit: (budget: Budget) => void;
 }
 
-const BudgetHistory: React.FC<BudgetHistoryProps> = ({ budgets, settings, onDelete, onUpdateStatus, onEdit }) => {
+const BudgetHistory: React.FC<BudgetHistoryProps> = ({ budgets, settings }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<BudgetStatus | 'todos'>('todos');
+  const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null);
 
-  const filtered = budgets.filter(b => {
-    const matchesSearch = b.client?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          b.id?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'todos' || b.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filtered = budgets.filter(b => b.client.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   const generatePDF = (budget: Budget) => {
-    try {
-      const doc = new jsPDF();
-      const margin = 20;
-      const pageWidth = doc.internal.pageSize.width;
-      
-      // Header Arquitectura
-      doc.setFillColor(15, 23, 42); // slate-900
-      doc.rect(0, 0, pageWidth, 60, 'F');
-      
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(28);
-      doc.setFont('helvetica', 'bold');
-      doc.text(settings.name?.toUpperCase() || 'MI EMPRESA', margin, 30);
-      
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(148, 163, 184);
-      doc.text(`${settings.ownerName.toUpperCase()}`, margin, 38);
-      doc.text(`TEL: ${settings.phone} | DIR: ${settings.address.toUpperCase()}`, margin, 44);
+    const doc = new jsPDF();
+    const margin = 20;
+    
+    doc.setFillColor(30, 41, 59);
+    doc.rect(0, 0, 210, 50, 'F');
+    
+    doc.setFillColor(249, 115, 22);
+    doc.rect(0, 50, 210, 3, 'F');
 
-      doc.setTextColor(249, 115, 22);
-      doc.setFontSize(16);
-      doc.setFont('helvetica', 'bold');
-      doc.text('COTIZACIÓN PROFESIONAL', pageWidth - margin, 30, { align: 'right' });
-      doc.setFontSize(11);
-      doc.setTextColor(255, 255, 255);
-      doc.text(`EXPEDIENTE: ${budget.id}`, pageWidth - margin, 40, { align: 'right' });
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.text(settings.name.toUpperCase(), margin, 25);
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${settings.ownerName} | ${settings.phone}`, margin, 34);
+    doc.text(settings.address || '', margin, 39);
 
-      // Info Proyecto
-      doc.setTextColor(15, 23, 42);
-      doc.setFontSize(11);
-      doc.setFont('helvetica', 'bold');
-      doc.text('RESUMEN TÉCNICO:', margin, 75);
-      doc.setDrawColor(241, 245, 249);
-      doc.line(margin, 78, pageWidth - margin, 78);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('COTIZACIÓN DE OBRA', 210 - margin - 60, 25, { align: 'right' });
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Expediente: ${budget.id}`, 210 - margin, 34, { align: 'right' });
 
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`CLIENTE: ${budget.client.name.toUpperCase()}`, margin, 88);
-      doc.text(`EMISIÓN: ${new Date(budget.date).toLocaleDateString()}`, pageWidth - margin, 88, { align: 'right' });
-      doc.text(`VALIDEZ HASTA: ${new Date(budget.validUntil).toLocaleDateString()}`, pageWidth - margin, 94, { align: 'right' });
+    doc.setTextColor(30, 41, 59);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('CLIENTE / PROYECTO:', margin, 65);
+    doc.setFont('helvetica', 'normal');
+    doc.text(budget.client.name, margin, 72);
+    doc.text(`Tel: ${budget.client.phone}`, margin, 78);
 
-      // TABLA 1: MANO DE OBRA
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(249, 115, 22);
-      doc.text('1. MANO DE OBRA Y SERVICIOS TÉCNICOS', margin, 105);
-      
-      autoTable(doc, {
-        startY: 108,
-        margin: { left: margin, right: margin },
-        head: [['DESCRIPCIÓN DEL TRABAJO', 'UNID.', 'CANT.', 'UNITARIO', 'SUBTOTAL']],
-        body: budget.items.map(i => [
-          i.name.toUpperCase(),
-          i.unit.toUpperCase(),
-          i.quantity.toFixed(2),
-          `${settings.currency}${i.price.toLocaleString()}`,
-          `${settings.currency}${i.subtotal.toLocaleString()}`
-        ]),
-        headStyles: { fillColor: [249, 115, 22], textColor: [255, 255, 255], fontSize: 9, halign: 'center' },
-        styles: { fontSize: 8.5, cellPadding: 5 },
-        columnStyles: { 0: { cellWidth: 'auto' }, 4: { halign: 'right', fontStyle: 'bold' } }
-      });
+    doc.setFont('helvetica', 'bold');
+    doc.text('INFORMACIÓN TÉCNICA:', 210 - margin - 60, 65);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Fecha Emisión: ${new Date(budget.date).toLocaleDateString()}`, 210 - margin - 60, 72);
+    doc.text(`Vencimiento: ${new Date(budget.validUntil).toLocaleDateString()}`, 210 - margin - 60, 78);
 
-      let finalY = (doc as any).lastAutoTable.finalY + 15;
+    autoTable(doc, {
+      startY: 90,
+      margin: { left: margin, right: margin },
+      head: [['Descripción de Rubros / Materiales', 'Unid.', 'Cant.', 'Precio Unit.', 'Total Rubro']],
+      body: budget.items.map(i => [
+        i.name,
+        i.unit,
+        i.quantity,
+        `${settings.currency}${i.price.toLocaleString()}`,
+        `${settings.currency}${i.subtotal.toLocaleString()}`
+      ]),
+      headStyles: { fillColor: [30, 41, 59], fontStyle: 'bold', textColor: [249, 115, 22] },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      styles: { fontSize: 9, cellPadding: 5 },
+    });
 
-      // TABLA 2: MATERIALES
-      if (budget.requiredMaterials.length > 0) {
-        if (finalY + 40 > doc.internal.pageSize.height) { doc.addPage(); finalY = margin; }
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(58, 124, 165); // Steel Blue
-        doc.text('2. MATERIALES E INSUMOS NECESARIOS', margin, finalY);
-        
-        autoTable(doc, {
-          startY: finalY + 3,
-          margin: { left: margin, right: margin },
-          head: [['MATERIAL / INSUMO', 'UNID.', 'CANT.', 'UNIT. ESTIM.', 'SUBTOTAL']],
-          body: budget.requiredMaterials.map(m => [
-            m.name.toUpperCase(),
-            m.unit.toUpperCase(),
-            m.quantity.toFixed(2),
-            `${settings.currency}${m.price.toLocaleString()}`,
-            `${settings.currency}${m.subtotal.toLocaleString()}`
-          ]),
-          headStyles: { fillColor: [58, 124, 165], textColor: [255, 255, 255], fontSize: 9, halign: 'center' },
-          styles: { fontSize: 8.5, cellPadding: 5 },
-          columnStyles: { 0: { cellWidth: 'auto' }, 4: { halign: 'right', fontStyle: 'bold' } }
-        });
-        finalY = (doc as any).lastAutoTable.finalY + 15;
-      }
+    const finalY = (doc as any).lastAutoTable.finalY;
 
-      // RESUMEN FINAL
-      if (finalY + 70 > doc.internal.pageSize.height) { doc.addPage(); finalY = margin; }
-      
-      const sumX = 110;
-      doc.setFontSize(9);
-      doc.setTextColor(100);
-      doc.text('TOTAL MANO DE OBRA:', sumX, finalY);
-      doc.text(`${settings.currency}${budget.subtotalLabor.toLocaleString()}`, pageWidth - margin, finalY, { align: 'right' });
-
-      doc.text(`TOTAL MATERIALES (${budget.materialsIncluded ? 'Incluidos' : 'No Incluidos'}):`, sumX, finalY + 8);
-      doc.text(`${settings.currency}${budget.subtotalMaterials.toLocaleString()}`, pageWidth - margin, finalY + 8, { align: 'right' });
-
-      if (budget.discount > 0) {
-        doc.text(`DESCUENTO GLOBAL (${budget.discount}%):`, sumX, finalY + 16);
-        doc.text(`-${settings.currency}${( (budget.subtotalLabor + (budget.materialsIncluded ? budget.subtotalMaterials : 0)) * budget.discount / 100).toLocaleString()}`, pageWidth - margin, finalY + 16, { align: 'right' });
-      }
-
-      // Caja Total Final (Verde)
-      doc.setFillColor(52, 199, 89); // success-green
-      doc.rect(sumX - 5, finalY + 22, pageWidth - margin - sumX + 10, 20, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(16);
-      doc.setFont('helvetica', 'bold');
-      doc.text('TOTAL GENERAL:', sumX, finalY + 35);
-      doc.text(`${settings.currency}${budget.total.toLocaleString()}`, pageWidth - margin, finalY + 35, { align: 'right' });
-
-      // Notas al pie
-      doc.setTextColor(150);
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'italic');
-      doc.text('Nota: Esta cotización contempla solo lo detallado en las tablas superiores.', margin, finalY + 55);
-      if (budget.clientBuysMaterials) {
-        doc.text('* Los materiales quedan a cargo exclusivo del cliente/comitente.', margin, finalY + 60);
-      }
-
-      doc.save(`PresuBuild_${budget.id}.pdf`);
-    } catch (err) {
-      console.error(err);
-      alert("Error al exportar PDF PresuBuild PRO.");
+    const rightOffset = 140;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Subtotal:', rightOffset, finalY + 15);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${settings.currency}${budget.subtotal.toLocaleString()}`, 210 - margin, finalY + 15, { align: 'right' });
+    
+    if (budget.discount > 0) {
+      doc.text(`Bonificación (${budget.discount}%):`, rightOffset, finalY + 22);
+      const discVal = (budget.subtotal * budget.discount) / 100;
+      doc.text(`-${settings.currency}${discVal.toLocaleString()}`, 210 - margin, finalY + 22, { align: 'right' });
     }
+
+    if (budget.taxRate > 0) {
+      doc.text(`IVA (${budget.taxRate}%):`, rightOffset, finalY + 29);
+      const taxVal = ((budget.subtotal * (1 - budget.discount / 100)) * budget.taxRate) / 100;
+      doc.text(`${settings.currency}${taxVal.toLocaleString()}`, 210 - margin, finalY + 29, { align: 'right' });
+    }
+
+    doc.setFillColor(249, 115, 22);
+    doc.rect(rightOffset - 5, finalY + 35, 210 - margin - rightOffset + 10, 14, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.text('TOTAL:', rightOffset, finalY + 44);
+    doc.text(`${settings.currency}${budget.total.toLocaleString()}`, 210 - margin, finalY + 44, { align: 'right' });
+
+    if (budget.client.observations) {
+      doc.setTextColor(30, 41, 59);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('OBSERVACIONES:', margin, finalY + 60);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.text(budget.client.observations, margin, finalY + 66, { maxWidth: 170 });
+    }
+
+    doc.save(`${budget.id}_${budget.client.name.replace(/\s+/g, '_')}.pdf`);
   };
 
   const sendWhatsApp = (b: Budget) => {
-    const text = `👷 *${settings.name.toUpperCase()} - PresuBuild PRO*
-📋 *COTIZACIÓN DE OBRA*
-🏗️ *Proyecto:* ${b.client.name.toUpperCase()}
-📄 *Expediente:* ${b.id}
-💰 *TOTAL:* ${settings.currency}${b.total.toLocaleString()}
-_Válido hasta el ${new Date(b.validUntil).toLocaleDateString()}._`;
+    const text = `👷 *${settings.name.toUpperCase()} - PRESUPUESTO*\n\nHola *${b.client.name}*, envío cotización adjunta.\n\n🏗️ *ID:* ${b.id}\n💰 *Monto:* ${settings.currency}${b.total.toLocaleString()}\n🗓️ *Vence:* ${new Date(b.validUntil).toLocaleDateString()}\n\nFavor de confirmar aceptación para iniciar obra.`;
     window.open(`https://wa.me/${b.client.phone.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
   };
 
-  const statusColors = {
-    aceptado: 'text-emerald-600 bg-emerald-50',
-    rechazado: 'text-rose-600 bg-rose-50',
-    pendiente: 'text-orange-600 bg-orange-50'
-  };
-
   return (
-    <div className="space-y-12 animate-scale pb-32">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-b border-slate-50 pb-12">
+    <div className="space-y-8 animate-in fade-in duration-700">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h2 className="text-4xl lg:text-5xl font-extrabold tracking-tighter leading-none mb-4">Archivo Histórico</h2>
-          <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Gestión Centralizada de Proyectos</p>
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase italic">Historial de <span className="text-orange-500">Obras</span></h2>
+          <p className="text-slate-500 font-medium">Búsqueda y gestión de presupuestos emitidos.</p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-4 items-end">
+        <div className="relative w-full md:w-80">
           <input 
             type="text" 
-            placeholder="BUSCAR EXPEDIENTE..." 
-            value={searchTerm} 
-            onChange={(e) => setSearchTerm(e.target.value)} 
-            className="px-6 py-5 bg-slate-50 border-transparent rounded-[1.5rem] text-xs font-extrabold uppercase outline-none focus:bg-white w-full sm:w-80 soft-shadow" 
+            placeholder="Buscar por cliente o proyecto..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-12 pr-6 py-4 bg-white border-2 border-slate-100 rounded-2xl focus:border-orange-500 outline-none font-bold transition-all"
           />
-          <div className="flex bg-slate-50 rounded-2xl p-2 soft-shadow">
-             {(['todos', 'pendiente', 'aceptado', 'rechazado'] as const).map(f => (
-               <button key={f} onClick={() => setStatusFilter(f)} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${statusFilter === f ? 'bg-slate-900 text-white shadow-xl' : 'text-slate-400'}`}>{f}</button>
-             ))}
-          </div>
+          <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filtered.map(b => (
-          <div key={b.id} className="bg-white rounded-[3rem] border border-slate-50 soft-shadow overflow-hidden flex flex-col group hover:scale-[1.02] transition-all">
-            <div className="p-10 flex-1">
-              <div className="flex justify-between items-start mb-8">
-                <span className="text-[10px] font-black bg-slate-900 text-orange-500 px-4 py-2 rounded-xl font-mono tracking-tighter shadow-lg">{b.id}</span>
-                <div className="relative group/status">
-                  <span className={`text-[9px] font-black uppercase px-4 py-2 rounded-full ${statusColors[b.status]}`}>{b.status}</span>
-                  <div className="absolute right-0 top-full mt-3 bg-white shadow-2xl rounded-2xl p-3 hidden group-hover/status:block z-30 border border-slate-50 w-36 animate-scale">
-                    {(['pendiente', 'aceptado', 'rechazado'] as BudgetStatus[]).map(s => (
-                      <button key={s} onClick={() => onUpdateStatus(b.id, s)} className="w-full text-left px-4 py-2 text-[10px] font-black uppercase text-slate-400 hover:text-orange-500 rounded-xl transition-colors">{s}</button>
-                    ))}
-                  </div>
+          <div key={b.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-full -mr-16 -mt-16 group-hover:bg-orange-50 transition-colors"></div>
+            
+            <div className="relative z-10 flex flex-col h-full">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black text-slate-900 bg-orange-500 px-3 py-1 rounded-lg uppercase tracking-widest italic">{b.id}</span>
+                  {b.status === 'aceptado' ? (
+                    <span className="flex items-center gap-1 text-[8px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full uppercase tracking-tighter">
+                      <CheckCircle2 size={10} /> Aceptado
+                    </span>
+                  ) : b.status === 'rechazado' ? (
+                    <span className="flex items-center gap-1 text-[8px] font-black text-red-600 bg-red-50 px-2 py-1 rounded-full uppercase tracking-tighter">
+                      <XCircle size={10} /> Rechazado
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-[8px] font-black text-orange-600 bg-orange-50 px-2 py-1 rounded-full uppercase tracking-tighter">
+                      <Clock size={10} /> Pendiente
+                    </span>
+                  )}
                 </div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{new Date(b.date).toLocaleDateString()}</span>
               </div>
               
-              <h4 className="text-2xl font-extrabold text-slate-900 uppercase italic truncate tracking-tighter mb-4">{b.client.name}</h4>
-              
-              <div className="flex items-center gap-6 text-[10px] font-bold text-slate-300 uppercase mb-10 pb-6 border-b border-slate-50">
-                <div className="flex items-center gap-2"><Calendar size={14} /> {new Date(b.date).toLocaleDateString()}</div>
-                <div className={`flex items-center gap-2 ${new Date(b.validUntil) < new Date() ? 'text-rose-500' : ''}`}><Clock size={14} /> {new Date(b.validUntil).toLocaleDateString()}</div>
+              <div className="mb-8">
+                <h4 className="text-xl font-black text-slate-900 leading-tight truncate uppercase italic">{b.client.name}</h4>
+                <div className="flex items-center gap-2 text-slate-400 mt-2">
+                  <Calendar size={12} className="text-orange-500" />
+                  <span className="text-[10px] font-black uppercase tracking-tighter">Vence: {new Date(b.validUntil).toLocaleDateString()}</span>
+                </div>
               </div>
 
-              <div className="flex items-end justify-between">
+              <div className="mt-auto pt-6 border-t border-slate-50 flex items-end justify-between">
                 <div>
-                  <p className="text-[9px] font-bold text-slate-300 uppercase mb-2 tracking-widest">Total Certificado</p>
-                  <p className="text-3xl font-extrabold text-success-green font-mono tracking-tighter leading-none">{settings.currency}{b.total.toLocaleString()}</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Costo Total</p>
+                  <p className="text-3xl font-black text-slate-900 leading-none mt-1 italic">{settings.currency}{b.total.toLocaleString()}</p>
                 </div>
-                <div className="flex gap-3">
-                  <button onClick={() => onEdit(b)} className="w-12 h-12 bg-slate-900 text-white rounded-2xl hover:bg-orange-500 transition-all flex items-center justify-center shadow-xl"><Edit3 size={20}/></button>
-                  <button onClick={() => generatePDF(b)} className="w-12 h-12 bg-slate-50 text-slate-400 rounded-2xl hover:bg-slate-900 hover:text-orange-500 transition-all flex items-center justify-center"><Download size={20}/></button>
-                  <button onClick={() => sendWhatsApp(b)} className="w-12 h-12 bg-emerald-500 text-white rounded-2xl hover:scale-110 transition-all flex items-center justify-center shadow-lg"><Send size={20}/></button>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => setSelectedBudget(b)}
+                    className="p-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-all"
+                  >
+                    <Eye size={18} />
+                  </button>
+                  <button 
+                    onClick={() => generatePDF(b)}
+                    className="p-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl transition-all shadow-lg shadow-slate-900/10"
+                  >
+                    <Download size={18} />
+                  </button>
+                  <button 
+                    onClick={() => sendWhatsApp(b)}
+                    className="p-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow-lg shadow-emerald-500/20 transition-all"
+                  >
+                    <Send size={18} />
+                  </button>
                 </div>
               </div>
             </div>
-            <button onClick={() => { if(confirm('¿BORRAR EXPEDIENTE?')) onDelete(b.id) }} className="w-full py-5 bg-slate-50/50 text-[10px] font-bold text-slate-200 uppercase hover:text-rose-500 transition-all border-t border-slate-50">Eliminar Expediente</button>
           </div>
         ))}
       </div>
-      {filtered.length === 0 && (
-        <div className="py-40 text-center opacity-10 flex flex-col items-center">
-           <Compass size={80} />
-           <p className="text-sm font-black uppercase tracking-[0.5em] mt-6">Archivo Vacío</p>
+
+      {selectedBudget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-md overflow-y-auto">
+          <div className="bg-white w-full max-w-4xl rounded-[2rem] shadow-2xl overflow-hidden my-auto animate-in zoom-in-95 duration-200">
+            <div className="p-10 border-t-8 border-orange-500">
+              <div className="flex justify-between items-start mb-12">
+                <div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-black text-slate-900 bg-orange-500 px-4 py-2 rounded-lg uppercase tracking-[0.2em] italic">{selectedBudget.id}</span>
+                    <span className={`text-[10px] font-black uppercase px-4 py-2 rounded-full ${selectedBudget.status === 'aceptado' ? 'bg-emerald-100 text-emerald-600' : selectedBudget.status === 'rechazado' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>
+                      Estado: {selectedBudget.status}
+                    </span>
+                  </div>
+                  <h3 className="text-4xl font-black text-slate-900 mt-6 uppercase italic tracking-tighter">{selectedBudget.client.name}</h3>
+                  <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mt-1">Expediente Técnico de Obra</p>
+                </div>
+                <button onClick={() => setSelectedBudget(null)} className="p-4 bg-slate-50 hover:bg-slate-100 rounded-2xl transition-all"><X size={28} /></button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-12">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Contacto</p>
+                  <p className="font-black text-slate-800 uppercase italic tracking-tighter">{selectedBudget.client.phone}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Emisión</p>
+                  <p className="font-black text-slate-800 uppercase italic tracking-tighter">{new Date(selectedBudget.date).toLocaleDateString()}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Responsable</p>
+                  <p className="font-black text-slate-800 uppercase italic tracking-tighter">{settings.ownerName || 'ADMIN'}</p>
+                </div>
+              </div>
+
+              <div className="bg-slate-900 rounded-3xl overflow-hidden mb-12 shadow-xl shadow-slate-900/20 max-h-[300px] overflow-y-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-800 sticky top-0 z-10">
+                    <tr className="text-[10px] font-black text-orange-400 uppercase tracking-widest">
+                      <th className="px-10 py-5">Descripción</th>
+                      <th className="px-10 py-5 text-center">Cant.</th>
+                      <th className="px-10 py-5 text-right">Unitario</th>
+                      <th className="px-10 py-5 text-right">Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800 text-white">
+                    {selectedBudget.items.map((i, idx) => (
+                      <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
+                        <td className="px-10 py-6">
+                          <p className="font-black uppercase italic tracking-tighter">{i.name}</p>
+                          <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">{i.unit}</p>
+                        </td>
+                        <td className="px-10 py-6 text-center font-black text-slate-400">{i.quantity}</td>
+                        <td className="px-10 py-6 text-right font-bold text-slate-500">{settings.currency}{i.price.toLocaleString()}</td>
+                        <td className="px-10 py-6 text-right font-black text-white text-lg">{settings.currency}{i.subtotal.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 pt-10 border-t-2 border-slate-100">
+                <div className="bg-slate-50 p-6 rounded-3xl flex items-center gap-10 border border-slate-200">
+                   <div className="flex flex-col">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Subtotal Obra</span>
+                      <span className="font-black text-slate-900 text-xl italic">{settings.currency}{selectedBudget.subtotal.toLocaleString()}</span>
+                   </div>
+                   <div className="w-0.5 h-12 bg-slate-200"></div>
+                   <div className="flex flex-col">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Bonificación</span>
+                      <span className="font-black text-red-600 text-xl italic">-${((selectedBudget.subtotal * selectedBudget.discount) / 100).toLocaleString()}</span>
+                   </div>
+                </div>
+
+                <div className="text-right">
+                  <p className="text-xs font-black text-orange-600 uppercase tracking-[0.3em] mb-2 italic">Total Presupuestado</p>
+                  <h5 className="text-7xl font-black text-slate-900 tracking-tighter italic">{settings.currency}{selectedBudget.total.toLocaleString()}</h5>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap justify-end gap-4 mt-16">
+                <button 
+                  onClick={() => generatePDF(selectedBudget)}
+                  className="bg-slate-900 hover:bg-slate-800 text-white font-black px-12 py-6 rounded-2xl shadow-xl flex items-center gap-4 transition-all active:scale-95 uppercase italic tracking-tight"
+                >
+                  <Download size={24} />
+                  Descargar PDF
+                </button>
+                 <button 
+                  onClick={() => sendWhatsApp(selectedBudget)}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-black px-12 py-6 rounded-2xl shadow-xl flex items-center gap-4 transition-all active:scale-95 uppercase italic tracking-tight"
+                >
+                  <Send size={24} />
+                  Enviar WhatsApp
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

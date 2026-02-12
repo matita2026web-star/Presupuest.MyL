@@ -1,5 +1,6 @@
+
 {
-  "name": "Gestor de Obras MyL",
-  "description": "Herramienta avanzada para presupuestar obras, gestionar insumos y materiales, con exportación profesional a PDF.",
+  "name": "PresuApp - Gestor de Presupuestos Multi-Rubro",
+  "description": "Una aplicación web profesional para crear, gestionar y compartir presupuestos de servicios y productos. Ideal para construcción, técnicos y pequeños comercios.",
   "requestFramePermissions": []
 }

@@ -1,5 +1,5 @@
 {
-  "name": "gestor-de-obras-myl",
+  "name": "presuapp---gestor-de-presupuestos-multi-rubro",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,10 +10,11 @@
   },
   "dependencies": {
     "react-dom": "^19.2.4",
+    "lucide-react": "^0.563.0",
     "react": "^19.2.4",
-    "lucide-react": "^0.463.0",
-    "jspdf": "2.5.1",
-    "jspdf-autotable": "3.8.2"
+    "jspdf": "^4.1.0",
+    "jspdf-autotable": "^5.0.7",
+    "@supabase/supabase-js": "2.39.7"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

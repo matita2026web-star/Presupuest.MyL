@@ -1,51 +1,37 @@
 
 import React, { useState } from 'react';
-import { 
-  Plus, Search, Trash2, Edit3, Save, X, 
-  HardHat, Package, Construction, 
-  Layers, Info, DollarSign, Type
-} from 'lucide-react';
+import { Plus, Search, Trash2, Edit3, Save, X, Package, Layers, Hammer, HardHat } from 'lucide-react';
 import { Product, UnitType } from '../types';
 
 interface ProductManagerProps {
   products: Product[];
   onUpdate: (products: Product[]) => void;
+  onDelete: (id: string) => void;
 }
 
-const ProductManager: React.FC<ProductManagerProps> = ({ products, onUpdate }) => {
+const ProductManager: React.FC<ProductManagerProps> = ({ products, onUpdate, onDelete }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  // Usamos un estado que permita string para el precio, así se puede borrar el '0'
-  const [form, setForm] = useState<{
-    name: string;
-    price: string | number;
-    unit: UnitType;
-    category: string;
-  }>({
+  const [form, setForm] = useState<Partial<Product>>({
     name: '',
-    price: '',
+    price: 0,
     unit: UnitType.UNIDAD,
     category: 'General'
   });
 
   const handleSave = () => {
-    const priceNum = typeof form.price === 'string' ? parseFloat(form.price) : form.price;
-    
-    if (!form.name || isNaN(priceNum as number) || form.name.trim() === '') {
-      alert("La descripción técnica y un precio válido son obligatorios.");
-      return;
-    }
+    if (!form.name || !form.price) return;
     
     if (editingId) {
-      onUpdate(products.map(p => p.id === editingId ? { ...p, ...form, price: priceNum } as Product : p));
+      onUpdate(products.map(p => p.id === editingId ? { ...p, ...form } as Product : p));
     } else {
       const newProduct: Product = {
         id: Date.now().toString(),
         name: form.name,
-        price: priceNum as number,
-        unit: form.unit,
+        price: form.price,
+        unit: form.unit as UnitType,
         category: form.category || 'General'
       };
       onUpdate([...products, newProduct]);
@@ -55,19 +41,14 @@ const ProductManager: React.FC<ProductManagerProps> = ({ products, onUpdate }) =
 
   const handleEdit = (p: Product) => {
     setEditingId(p.id);
-    setForm({
-      name: p.name,
-      price: p.price,
-      unit: p.unit,
-      category: p.category
-    });
+    setForm(p);
     setIsAdding(true);
   };
 
   const resetForm = () => {
     setIsAdding(false);
     setEditingId(null);
-    setForm({ name: '', price: '', unit: UnitType.UNIDAD, category: 'General' });
+    setForm({ name: '', price: 0, unit: UnitType.UNIDAD, category: 'General' });
   };
 
   const filtered = products.filter(p => 
@@ -76,188 +57,138 @@ const ProductManager: React.FC<ProductManagerProps> = ({ products, onUpdate }) =
   );
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Header Industrial */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-2 border-slate-200 pb-6">
+    <div className="space-y-8 animate-in fade-in duration-700">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="p-1.5 bg-amber-500 rounded text-slate-900">
-              <Layers size={18} />
-            </div>
-            <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight italic">MAESTRO DE INSUMOS</h2>
-          </div>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Control de Precios y Rendimientos Técnicos</p>
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase italic">Catálogo de <span className="text-orange-500">Insumos y Obra</span></h2>
+          <p className="text-slate-500 font-medium">Sincronizado en la nube con Supabase.</p>
         </div>
         <button 
           onClick={() => setIsAdding(true)}
-          className="bg-slate-900 text-white px-6 py-3 rounded-xl font-black flex items-center justify-center gap-2 uppercase text-[11px] tracking-widest shadow-lg shadow-slate-200 active:scale-95 transition-all border-b-4 border-slate-700 hover:bg-slate-800"
+          className="bg-slate-900 hover:bg-slate-800 text-white px-8 py-5 rounded-xl font-black shadow-xl shadow-slate-900/10 transition-all flex items-center justify-center gap-4 uppercase italic tracking-tight"
         >
-          <Plus size={16} className="text-amber-500" />
-          Añadir Registro
+          <Plus size={24} className="text-orange-500" />
+          Nuevo Ítem de Obra
         </button>
       </div>
 
-      {/* Buscador Profesional */}
-      <div className="relative group">
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors">
-          <Search size={18}/>
-        </div>
-        <input 
-          type="text" 
-          placeholder="BUSCAR POR DESCRIPCIÓN O RUBRO..." 
-          value={searchTerm} 
-          onChange={(e) => setSearchTerm(e.target.value)} 
-          className="w-full bg-white pl-12 pr-4 py-4 rounded-xl border border-slate-200 outline-none focus:border-amber-500 text-xs font-bold shadow-sm transition-all uppercase placeholder:text-slate-300 tracking-wider" 
-        />
-      </div>
-
-      {/* Modal de Carga Mejorado */}
       {isAdding && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border-x-4 border-slate-900 animate-in zoom-in-95">
-            <header className="bg-slate-900 p-6 flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center text-slate-900 shadow-lg shadow-amber-500/20">
-                  <Construction size={20} />
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-white uppercase tracking-tight">
-                    {editingId ? 'Editar Especificación' : 'Nueva Ficha Técnica'}
-                  </h3>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Entrada de datos maestros</p>
-                </div>
-              </div>
-              <button onClick={resetForm} className="p-2 text-slate-500 hover:text-white transition-colors"><X size={24}/></button>
-            </header>
-
-            <div className="p-8 space-y-8">
-              {/* Bloque de Identificación */}
-              <div className="space-y-5">
-                <div className="relative">
-                  <label className="absolute -top-2 left-3 px-2 bg-white text-[9px] font-black text-slate-400 uppercase tracking-widest z-10">Descripción del Insumo</label>
-                  <div className="flex items-center bg-slate-50 border-2 border-slate-100 rounded-xl px-4 focus-within:border-amber-500 transition-colors">
-                    <Type size={16} className="text-slate-300 mr-3" />
-                    <input 
-                      type="text" 
-                      value={form.name} 
-                      onChange={(e) => setForm({...form, name: e.target.value})} 
-                      placeholder="EJ: MANO DE OBRA REVOQUE GRUESO" 
-                      className="w-full py-4 bg-transparent outline-none font-bold text-xs uppercase text-slate-700" 
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="relative">
-                    <label className="absolute -top-2 left-3 px-2 bg-white text-[9px] font-black text-slate-400 uppercase tracking-widest z-10">Rubro</label>
-                    <div className="flex items-center bg-slate-50 border-2 border-slate-100 rounded-xl px-4 focus-within:border-amber-500 transition-colors">
-                      <Layers size={16} className="text-slate-300 mr-3" />
-                      <input 
-                        type="text" 
-                        value={form.category} 
-                        onChange={(e) => setForm({...form, category: e.target.value})} 
-                        placeholder="ALBAÑILERÍA" 
-                        className="w-full py-4 bg-transparent outline-none font-bold text-[10px] uppercase text-slate-700" 
-                      />
-                    </div>
-                  </div>
-                  <div className="relative">
-                    <label className="absolute -top-2 left-3 px-2 bg-white text-[9px] font-black text-slate-400 uppercase tracking-widest z-10">Unidad</label>
-                    <div className="flex items-center bg-slate-50 border-2 border-slate-100 rounded-xl px-4 focus-within:border-amber-500 transition-colors">
-                      <Package size={16} className="text-slate-300 mr-3" />
-                      <select 
-                        value={form.unit} 
-                        onChange={(e) => setForm({...form, unit: e.target.value as UnitType})} 
-                        className="w-full py-4 bg-transparent outline-none font-bold text-[10px] uppercase text-slate-700 appearance-none cursor-pointer"
-                      >
-                        {Object.values(UnitType).map(u => <option key={u} value={u}>{u.toUpperCase()}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/90 backdrop-blur-md">
+          <div className="bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border-t-8 border-orange-500">
+            <div className="p-10 space-y-8">
+              <div className="flex justify-between items-center">
+                <h3 className="text-2xl font-black text-slate-900 uppercase italic tracking-tighter">{editingId ? 'Editar Ítem' : 'Nuevo Registro de Obra'}</h3>
+                <button onClick={resetForm} className="p-3 bg-slate-100 hover:bg-slate-200 rounded-2xl transition-all"><X size={20}/></button>
               </div>
 
-              {/* Bloque de Costos - Con corrección de borrado de 0 */}
-              <div className="bg-slate-50 p-6 rounded-2xl border-2 border-slate-100 space-y-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <DollarSign size={14} className="text-amber-500" />
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Valor Unitario de Referencia</span>
-                </div>
-                <div className="relative">
-                  <div className="absolute left-6 top-1/2 -translate-y-1/2 font-black text-amber-500 text-2xl">$</div>
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Descripción del Ítem</label>
                   <input 
-                    type="number" 
-                    value={form.price} 
-                    onChange={(e) => setForm({...form, price: e.target.value})} 
-                    placeholder="0"
-                    className="w-full bg-slate-900 text-white pl-14 pr-6 py-6 rounded-xl border-none outline-none font-mono font-bold text-4xl text-center shadow-xl ring-2 ring-transparent focus:ring-amber-500 transition-all" 
+                    type="text" 
+                    value={form.name}
+                    onChange={(e) => setForm({...form, name: e.target.value})}
+                    placeholder="Ej: Pintura de Paredes con Látex"
+                    className="w-full bg-slate-50 px-6 py-5 rounded-2xl border-2 border-slate-100 focus:border-orange-500 outline-none font-black uppercase italic transition-all"
                   />
                 </div>
-                <p className="text-center text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Ingrese el valor neto para cálculos automáticos</p>
+
+                <div className="grid grid-cols-2 gap-5">
+                   <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Rubro / Categoría</label>
+                    <input 
+                      type="text" 
+                      value={form.category}
+                      onChange={(e) => setForm({...form, category: e.target.value})}
+                      placeholder="Mano de Obra, Materiales..."
+                      className="w-full bg-slate-50 px-6 py-5 rounded-2xl border-2 border-slate-100 focus:border-orange-500 outline-none font-bold uppercase transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Cómputo / Unidad</label>
+                    <select 
+                      value={form.unit}
+                      onChange={(e) => setForm({...form, unit: e.target.value as UnitType})}
+                      className="w-full bg-slate-50 px-6 py-5 rounded-2xl border-2 border-slate-100 focus:border-orange-500 outline-none font-black uppercase transition-all appearance-none cursor-pointer"
+                    >
+                      {Object.values(UnitType).map(u => <option key={u} value={u}>{u}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Costo Unitario Vigente ($)</label>
+                  <input 
+                    type="number" 
+                    value={form.price}
+                    onChange={(e) => setForm({...form, price: parseFloat(e.target.value) || 0})}
+                    className="w-full bg-slate-50 px-6 py-5 rounded-2xl border-2 border-slate-100 focus:border-orange-500 outline-none font-black text-3xl italic text-slate-900 transition-all"
+                  />
+                </div>
               </div>
 
-              <div className="flex gap-3 pt-2">
-                <button onClick={resetForm} className="flex-1 py-4 bg-slate-100 text-slate-500 font-black rounded-xl uppercase text-[10px] tracking-widest hover:bg-slate-200 transition-colors">
-                  Cancelar
-                </button>
-                <button 
-                  onClick={handleSave} 
-                  className="flex-[2] bg-slate-900 text-white font-black py-4 rounded-xl shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all uppercase text-[10px] tracking-widest border-b-4 border-slate-700 hover:bg-slate-800"
-                >
-                  <Save size={18} className="text-amber-500" />
-                  {editingId ? 'Guardar Cambios' : 'Confirmar Alta'}
-                </button>
-              </div>
+              <button 
+                onClick={handleSave}
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-7 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-4 uppercase italic tracking-tight"
+              >
+                <Save size={24} className="text-orange-500" />
+                Guardar en Supabase
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Planilla Técnica (Tabla) */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto custom-scrollbar">
-          <table className="w-full text-left border-collapse">
+      <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
+        <div className="p-8 border-b border-slate-100 bg-slate-50/50 flex items-center gap-6">
+          <div className="p-3 bg-white rounded-xl shadow-inner border border-slate-100">
+             <Search size={24} className="text-orange-500" />
+          </div>
+          <input 
+            type="text" 
+            placeholder="Filtrar por nombre del ítem o rubro de obra..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="bg-transparent flex-1 outline-none font-black text-slate-800 uppercase italic tracking-tight text-lg"
+          />
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Descripción Técnica</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Rubro</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Unidad</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Costo Vigente</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Gestión</th>
+              <tr className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 bg-slate-50">
+                <th className="px-12 py-6 italic">Descripción Técnica</th>
+                <th className="px-12 py-6">Rubro Obra</th>
+                <th className="px-12 py-6">Cómputo</th>
+                <th className="px-12 py-6 text-right">Precio Actual</th>
+                <th className="px-12 py-6 text-center">Gestión</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-50">
               {filtered.map(p => (
-                <tr key={p.id} className="hover:bg-slate-50/80 transition-all group">
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-4">
-                      <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 shrink-0 group-hover:bg-slate-900 group-hover:text-amber-500 transition-all border border-transparent group-hover:border-amber-500/30">
-                        <HardHat size={16} />
+                <tr key={p.id} className="hover:bg-slate-50 group transition-all">
+                  <td className="px-12 py-8">
+                    <div className="flex items-center gap-6">
+                      <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-slate-900 group-hover:text-orange-500 transition-all shadow-inner">
+                        <Hammer size={24} />
                       </div>
-                      <span className="text-xs font-black text-slate-700 uppercase truncate max-w-[200px]" title={p.name}>
-                        {p.name}
-                      </span>
+                      <span className="font-black text-slate-900 uppercase italic tracking-tighter text-lg">{p.name}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-5 text-center">
-                    <span className="inline-block px-3 py-1 bg-slate-100 text-slate-500 rounded-lg text-[9px] font-black uppercase tracking-widest border border-slate-200 group-hover:bg-white group-hover:text-slate-800 transition-colors">
+                  <td className="px-12 py-8">
+                    <span className="px-4 py-1.5 bg-orange-100 text-orange-700 rounded-lg text-[10px] font-black uppercase tracking-widest border border-orange-200">
                       {p.category}
                     </span>
                   </td>
-                  <td className="px-6 py-5 text-center font-mono text-[10px] font-bold text-slate-400 uppercase">{p.unit}</td>
-                  <td className="px-6 py-5 text-right font-mono font-black text-slate-900 italic text-sm">
-                    ${p.price.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-5">
-                    <div className="flex items-center justify-center gap-1">
-                      <button onClick={() => handleEdit(p)} className="p-2.5 text-slate-300 hover:text-slate-900 hover:bg-white rounded-xl transition-all shadow-sm border border-transparent hover:border-slate-100">
-                        <Edit3 size={16}/>
+                  <td className="px-12 py-8 text-slate-500 font-bold uppercase tracking-widest italic">{p.unit}</td>
+                  <td className="px-12 py-8 text-right font-black text-slate-900 text-xl italic">${p.price.toLocaleString()}</td>
+                  <td className="px-12 py-8">
+                    <div className="flex items-center justify-center gap-4">
+                      <button onClick={() => handleEdit(p)} className="p-4 text-slate-300 hover:text-slate-900 hover:bg-slate-100 rounded-2xl transition-all shadow-sm">
+                        <Edit3 size={20} />
                       </button>
-                      <button 
-                        onClick={() => { if(confirm('¿ELIMINAR ESTE INSUMO DEL CATÁLOGO MAESTRO?')) onUpdate(products.filter(item => item.id !== p.id)) }} 
-                        className="p-2.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                      >
-                        <Trash2 size={16}/>
+                      <button onClick={() => onDelete(p.id)} className="p-4 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all shadow-sm">
+                        <Trash2 size={20} />
                       </button>
                     </div>
                   </td>
@@ -265,34 +196,6 @@ const ProductManager: React.FC<ProductManagerProps> = ({ products, onUpdate }) =
               ))}
             </tbody>
           </table>
-        </div>
-
-        {filtered.length === 0 && (
-          <div className="py-24 text-center">
-            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
-              <Package size={24} className="text-slate-200" />
-            </div>
-            <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em] italic">No se hallaron registros técnicos</p>
-          </div>
-        )}
-      </div>
-
-      {/* Footer Informativo */}
-      <div className="bg-slate-900 p-5 rounded-2xl flex items-center justify-between text-white shadow-xl border-b-4 border-amber-500">
-        <div className="flex items-center gap-4">
-           <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-amber-500 border border-slate-700">
-              <Info size={20} />
-           </div>
-           <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-amber-500 mb-0.5">Gestión de Catálogo</p>
-              <p className="text-[9px] font-medium text-slate-400 leading-tight">
-                Los precios actualizados aquí se reflejarán en todas las nuevas cotizaciones.
-              </p>
-           </div>
-        </div>
-        <div className="text-right">
-           <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Items Totales</p>
-           <p className="text-lg font-black font-mono text-white leading-none">{products.length}</p>
         </div>
       </div>
     </div>

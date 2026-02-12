@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Package, FilePlus, History, 
-  Settings as SettingsIcon, User, HardHat, Compass
+  Settings as SettingsIcon, Menu, X, Bell, User, HardHat, Loader2
 } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import ProductManager from './components/ProductManager';
@@ -16,176 +16,202 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'generator' | 'history' | 'settings'>('dashboard');
   const [products, setProducts] = useState<Product[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
-  const [settings, setSettings] = useState<BusinessSettings>(storage.getSettings());
-  const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
+  const [settings, setSettings] = useState<BusinessSettings | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setProducts(storage.getProducts());
-    setBudgets(storage.getBudgets());
+    const loadInitialData = async () => {
+      setIsLoading(true);
+      try {
+        const [prodData, budData, settsData] = await Promise.all([
+          storage.getProducts(),
+          storage.getBudgets(),
+          storage.getSettings()
+        ]);
+        setProducts(prodData);
+        setBudgets(budData);
+        setSettings(settsData);
+      } catch (err) {
+        console.error("Error cargando datos de Supabase:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadInitialData();
   }, []);
 
-  const handleUpdateProducts = (newProducts: Product[]) => {
+  const handleUpdateProducts = async (newProducts: Product[]) => {
+    // Para simplificar, comparamos diferencias o simplemente refrescamos
+    // Pero aquí gestionaremos la lógica de guardado individual si es necesario.
+    // En este caso, el componente ProductManager nos envía la lista completa.
     setProducts(newProducts);
-    storage.saveProducts(newProducts);
+    // Nota: En una app pro, guardaríamos solo el ítem editado/nuevo.
+    // Por ahora, sincronizamos el catálogo completo (upsert masivo)
+    for (const p of newProducts) {
+      await storage.saveProduct(p);
+    }
   };
 
-  const handleSaveBudget = (newBudget: Budget) => {
-    let updatedBudgets;
-    const exists = budgets.findIndex(b => b.id === newBudget.id);
-    if (exists !== -1) {
-      updatedBudgets = [...budgets];
-      updatedBudgets[exists] = newBudget;
-    } else {
-      updatedBudgets = [newBudget, ...budgets];
-    }
-    setBudgets(updatedBudgets);
-    storage.saveBudgets(updatedBudgets);
-    setEditingBudget(null);
+  const handleDeleteProduct = async (id: string) => {
+    const updated = products.filter(p => p.id !== id);
+    setProducts(updated);
+    await storage.deleteProduct(id);
+  };
+
+  const handleSaveBudget = async (newBudget: Budget) => {
+    setBudgets([newBudget, ...budgets]);
+    await storage.saveBudget(newBudget);
     setActiveTab('history');
   };
 
-  const handleUpdateBudgetStatus = (id: string, status: BudgetStatus) => {
+  const handleUpdateBudgetStatus = async (id: string, status: BudgetStatus) => {
     const updatedBudgets = budgets.map(b => b.id === id ? { ...b, status } : b);
     setBudgets(updatedBudgets);
-    storage.saveBudgets(updatedBudgets);
+    await storage.updateBudgetStatus(id, status);
   };
 
-  const handleDeleteBudget = (id: string) => {
-    const updatedBudgets = budgets.filter(b => b.id !== id);
-    setBudgets(updatedBudgets);
-    storage.saveBudgets(updatedBudgets);
-  };
-
-  const handleUpdateSettings = (newSettings: BusinessSettings) => {
+  const handleUpdateSettings = async (newSettings: BusinessSettings) => {
     setSettings(newSettings);
-    storage.saveSettings(newSettings);
+    await storage.saveSettings(newSettings);
   };
 
-  const handleEditBudget = (budget: Budget) => {
-    setEditingBudget(budget);
-    setActiveTab('generator');
-  };
+  if (isLoading || !settings) {
+    return (
+      <div className="min-h-screen bg-[#1e293b] flex flex-col items-center justify-center text-white p-6">
+        <div className="w-20 h-20 bg-orange-500 rounded-3xl flex items-center justify-center mb-6 animate-bounce shadow-2xl shadow-orange-500/20">
+           <HardHat size={48} className="text-slate-900" />
+        </div>
+        <Loader2 className="animate-spin text-orange-500 mb-4" size={32} />
+        <h2 className="text-2xl font-black uppercase italic tracking-tighter">Conectando con <span className="text-orange-500">Supabase</span></h2>
+        <p className="text-slate-400 font-bold mt-2 uppercase text-[10px] tracking-[0.3em]">Cargando expedientes técnicos...</p>
+      </div>
+    );
+  }
 
   const navItems = [
-    { id: 'dashboard', label: 'Inicio', icon: LayoutDashboard },
-    { id: 'generator', label: editingBudget ? 'Editando' : 'Crear', icon: FilePlus },
-    { id: 'products', label: 'Insumos', icon: Package },
-    { id: 'history', label: 'Archivo', icon: History },
-    { id: 'settings', label: 'Perfil', icon: SettingsIcon },
+    { id: 'dashboard', label: 'Panel Principal', icon: LayoutDashboard },
+    { id: 'generator', label: 'Nuevo Presupuesto', icon: FilePlus },
+    { id: 'products', label: 'Catálogo / Precios', icon: Package },
+    { id: 'history', label: 'Historial de Obras', icon: History },
+    { id: 'settings', label: 'Mi Constructora', icon: SettingsIcon },
   ];
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Sidebar Desktop - Ultra Clean */}
-      <aside className="hidden lg:flex flex-col w-72 bg-white sticky top-0 h-screen border-r border-slate-100 px-6 py-8">
-        <div className="flex items-center gap-4 mb-12">
-          <div className="w-12 h-12 bg-orange-500 rounded-2xl flex items-center justify-center shadow-xl shadow-orange-500/20">
-            <Compass size={28} className="text-white" />
-          </div>
-          <div>
-            <h1 className="font-extrabold text-lg tracking-tighter leading-none">{settings.name || 'PresuApp Pro'}</h1>
-            <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Estudio Técnico</span>
-          </div>
-        </div>
-        
-        <nav className="flex-1 space-y-2">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => {
-                if (item.id !== 'generator') setEditingBudget(null);
-                setActiveTab(item.id as any);
-              }}
-              className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all text-sm font-bold ${
-                activeTab === item.id ? 'bg-slate-900 text-white shadow-xl' : 'text-slate-400 hover:bg-slate-50'
-              }`}
-            >
-              <item.icon size={20} />
-              {item.label}
-            </button>
-          ))}
-        </nav>
+    <div className="min-h-screen flex bg-[#f8fafc] text-slate-900 overflow-hidden font-sans">
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-40 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
 
-        <div className="pt-8 border-t border-slate-50">
-           <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl">
-             <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center">
-                <User size={18} className="text-slate-400" />
-             </div>
-             <div className="truncate">
-                <p className="text-[10px] font-bold text-slate-300 uppercase">Director</p>
-                <p className="text-xs font-bold truncate">{settings.ownerName}</p>
-             </div>
-           </div>
+      <aside className={`
+        fixed inset-y-0 left-0 z-50 w-72 bg-[#1e293b] text-white border-r border-slate-700 transform transition-all duration-300 ease-in-out lg:relative lg:translate-x-0
+        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
+        <div className="h-full flex flex-col">
+          <div className="p-8">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center text-slate-900 shadow-lg shadow-orange-500/20">
+                <HardHat size={28} />
+              </div>
+              <div className="overflow-hidden">
+                <h1 className="text-xl font-black text-white truncate leading-tight uppercase tracking-tighter">
+                  {settings.name || 'MI OBRA'}
+                </h1>
+                <p className="text-[10px] text-orange-400 uppercase tracking-widest font-black">CONSTRUCTORA PRO</p>
+              </div>
+            </div>
+          </div>
+
+          <nav className="flex-1 px-4 space-y-2">
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  setActiveTab(item.id as any);
+                  setIsSidebarOpen(false);
+                }}
+                className={`
+                  w-full flex items-center gap-4 px-5 py-4 rounded-xl transition-all group
+                  ${activeTab === item.id 
+                    ? 'bg-orange-500 text-slate-900 font-black shadow-lg shadow-orange-500/30 translate-x-1' 
+                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'}
+                `}
+              >
+                <item.icon size={22} className={activeTab === item.id ? 'text-slate-900' : 'group-hover:text-orange-500 transition-colors'} />
+                <span className="text-[14px] uppercase tracking-wide">{item.label}</span>
+              </button>
+            ))}
+          </nav>
+
+          <div className="p-6 border-t border-slate-700">
+            <div className="p-4 bg-slate-800/50 rounded-2xl border border-slate-700">
+              <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-1">Status Base de Datos</p>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                <p className="text-xs text-slate-300 font-bold uppercase tracking-tighter">Sincronizado</p>
+              </div>
+            </div>
+          </div>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col min-h-screen">
-        <header className="lg:hidden h-20 bg-white/80 backdrop-blur-xl border-b border-slate-50 flex items-center justify-between px-6 sticky top-0 z-40">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20">
-              <Compass size={22} className="text-white" />
+      <main className="flex-1 flex flex-col min-w-0 h-screen">
+        <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-30 shadow-sm">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setIsSidebarOpen(true)}
+              className="lg:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg"
+            >
+              <Menu size={24} />
+            </button>
+            <div className="hidden sm:flex flex-col">
+               <h2 className="text-lg font-black text-slate-800 uppercase tracking-tight">
+                 {navItems.find(n => n.id === activeTab)?.label}
+               </h2>
+               <div className="w-10 h-1 bg-orange-500 rounded-full mt-0.5"></div>
             </div>
-            <h1 className="font-extrabold text-base tracking-tighter leading-none">{settings.name || 'PresuApp'}</h1>
           </div>
-          <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center">
-            <User size={18} className="text-slate-400" />
+          
+          <div className="flex items-center gap-6">
+             <div className="hidden md:flex flex-col text-right">
+                <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Responsable</span>
+                <span className="text-sm font-bold text-slate-900">{settings.ownerName || 'ADMIN'}</span>
+             </div>
+             <div className="w-12 h-12 rounded-2xl bg-slate-100 border-2 border-slate-200 flex items-center justify-center overflow-hidden">
+               {settings.logoUrl ? (
+                 <img src={settings.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+               ) : (
+                 <User className="text-slate-400" size={24} />
+               )}
+             </div>
           </div>
         </header>
 
-        <div className="flex-1 p-6 lg:p-12 max-w-6xl mx-auto w-full">
-          {activeTab === 'dashboard' && (
-            <Dashboard 
-              products={products} 
-              budgets={budgets} 
-              settings={settings} 
-              onNavigate={setActiveTab}
-              onUpdateStatus={handleUpdateBudgetStatus}
-            />
-          )}
-          {activeTab === 'products' && <ProductManager products={products} onUpdate={handleUpdateProducts} />}
-          {activeTab === 'generator' && (
-            <BudgetGenerator 
-              products={products} 
-              settings={settings} 
-              onSave={handleSaveBudget} 
-              initialBudget={editingBudget}
-              onCancel={() => {
-                setEditingBudget(null);
-                setActiveTab('history');
-              }}
-            />
-          )}
-          {activeTab === 'history' && (
-            <BudgetHistory 
-              budgets={budgets} 
-              settings={settings} 
-              onDelete={handleDeleteBudget} 
-              onUpdateStatus={handleUpdateBudgetStatus} 
-              onEdit={handleEditBudget}
-            />
-          )}
-          {activeTab === 'settings' && <SettingsView settings={settings} onUpdate={handleUpdateSettings} />}
-        </div>
-
-        {/* Floating Mobile Nav - Premium Style */}
-        <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm z-50">
-          <nav className="bg-slate-900/95 backdrop-blur-xl rounded-[2.5rem] p-2 flex items-center justify-around shadow-2xl shadow-slate-900/40">
-             {navItems.map((item) => (
-               <button
-                 key={item.id}
-                 onClick={() => {
-                  if (item.id !== 'generator') setEditingBudget(null);
-                  setActiveTab(item.id as any);
-                 }}
-                 className={`flex flex-col items-center justify-center w-12 h-12 rounded-full transition-all ${
-                   activeTab === item.id ? 'bg-orange-500 text-white scale-110 shadow-lg' : 'text-slate-500'
-                 }`}
-               >
-                 <item.icon size={20} />
-               </button>
-             ))}
-          </nav>
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10">
+          <div className="max-w-7xl mx-auto">
+            {activeTab === 'dashboard' && (
+              <Dashboard 
+                products={products} 
+                budgets={budgets} 
+                settings={settings} 
+                onNavigate={setActiveTab}
+                onUpdateStatus={handleUpdateBudgetStatus}
+              />
+            )}
+            {activeTab === 'products' && (
+              <ProductManager 
+                products={products} 
+                onUpdate={handleUpdateProducts}
+                onDelete={handleDeleteProduct}
+              />
+            )}
+            {activeTab === 'generator' && <BudgetGenerator products={products} settings={settings} onSave={handleSaveBudget} />}
+            {activeTab === 'history' && <BudgetHistory budgets={budgets} settings={settings} />}
+            {activeTab === 'settings' && <SettingsView settings={settings} onUpdate={handleUpdateSettings} />}
+          </div>
         </div>
       </main>
     </div>
