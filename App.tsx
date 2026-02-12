@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Package, FilePlus, History, 
@@ -19,6 +18,9 @@ const App: React.FC = () => {
   const [settings, setSettings] = useState<BusinessSettings | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Estado para manejar la edición
+  const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
 
   useEffect(() => {
     const loadInitialData = async () => {
@@ -41,34 +43,53 @@ const App: React.FC = () => {
     loadInitialData();
   }, []);
 
-  const handleUpdateProducts = async (newProducts: Product[]) => {
-    // Para simplificar, comparamos diferencias o simplemente refrescamos
-    // Pero aquí gestionaremos la lógica de guardado individual si es necesario.
-    // En este caso, el componente ProductManager nos envía la lista completa.
-    setProducts(newProducts);
-    // Nota: En una app pro, guardaríamos solo el ítem editado/nuevo.
-    // Por ahora, sincronizamos el catálogo completo (upsert masivo)
-    for (const p of newProducts) {
-      await storage.saveProduct(p);
+  // --- FUNCIONES DE PRESUPUESTOS ---
+
+  const handleSaveBudget = async (newBudget: Budget) => {
+    // Si estamos editando, reemplazamos, si no, agregamos
+    if (budgets.find(b => b.id === newBudget.id)) {
+      setBudgets(budgets.map(b => b.id === newBudget.id ? newBudget : b));
+    } else {
+      setBudgets([newBudget, ...budgets]);
+    }
+    
+    await storage.saveBudget(newBudget);
+    setEditingBudget(null);
+    setActiveTab('history');
+  };
+
+  const handleDeleteBudget = async (id: string) => {
+    try {
+      setBudgets(budgets.filter(b => b.id !== id));
+      await storage.deleteBudget(id); // Asegúrate que storage tenga deleteBudget
+    } catch (err) {
+      console.error("Error al borrar:", err);
     }
   };
 
-  const handleDeleteProduct = async (id: string) => {
-    const updated = products.filter(p => p.id !== id);
-    setProducts(updated);
-    await storage.deleteProduct(id);
-  };
-
-  const handleSaveBudget = async (newBudget: Budget) => {
-    setBudgets([newBudget, ...budgets]);
-    await storage.saveBudget(newBudget);
-    setActiveTab('history');
+  const handleEditBudget = (budget: Budget) => {
+    setEditingBudget(budget);
+    setActiveTab('generator'); // Saltamos al generador con los datos
   };
 
   const handleUpdateBudgetStatus = async (id: string, status: BudgetStatus) => {
     const updatedBudgets = budgets.map(b => b.id === id ? { ...b, status } : b);
     setBudgets(updatedBudgets);
     await storage.updateBudgetStatus(id, status);
+  };
+
+  // --- OTRAS FUNCIONES ---
+
+  const handleUpdateProducts = async (newProducts: Product[]) => {
+    setProducts(newProducts);
+    for (const p of newProducts) {
+      await storage.saveProduct(p);
+    }
+  };
+
+  const handleDeleteProduct = async (id: string) => {
+    setProducts(products.filter(p => p.id !== id));
+    await storage.deleteProduct(id);
   };
 
   const handleUpdateSettings = async (newSettings: BusinessSettings) => {
@@ -91,7 +112,7 @@ const App: React.FC = () => {
 
   const navItems = [
     { id: 'dashboard', label: 'Panel Principal', icon: LayoutDashboard },
-    { id: 'generator', label: 'Nuevo Presupuesto', icon: FilePlus },
+    { id: 'generator', label: editingBudget ? 'Editando Obra' : 'Nuevo Presupuesto', icon: FilePlus },
     { id: 'products', label: 'Catálogo / Precios', icon: Package },
     { id: 'history', label: 'Historial de Obras', icon: History },
     { id: 'settings', label: 'Mi Constructora', icon: SettingsIcon },
@@ -130,6 +151,7 @@ const App: React.FC = () => {
               <button
                 key={item.id}
                 onClick={() => {
+                  if (item.id !== 'generator') setEditingBudget(null);
                   setActiveTab(item.id as any);
                   setIsSidebarOpen(false);
                 }}
@@ -168,10 +190,10 @@ const App: React.FC = () => {
               <Menu size={24} />
             </button>
             <div className="hidden sm:flex flex-col">
-               <h2 className="text-lg font-black text-slate-800 uppercase tracking-tight">
-                 {navItems.find(n => n.id === activeTab)?.label}
-               </h2>
-               <div className="w-10 h-1 bg-orange-500 rounded-full mt-0.5"></div>
+                <h2 className="text-lg font-black text-slate-800 uppercase tracking-tight">
+                  {navItems.find(n => n.id === activeTab)?.label}
+                </h2>
+                <div className="w-10 h-1 bg-orange-500 rounded-full mt-0.5"></div>
             </div>
           </div>
           
@@ -208,8 +230,22 @@ const App: React.FC = () => {
                 onDelete={handleDeleteProduct}
               />
             )}
-            {activeTab === 'generator' && <BudgetGenerator products={products} settings={settings} onSave={handleSaveBudget} />}
-            {activeTab === 'history' && <BudgetHistory budgets={budgets} settings={settings} />}
+            {activeTab === 'generator' && (
+              <BudgetGenerator 
+                products={products} 
+                settings={settings} 
+                onSave={handleSaveBudget} 
+                initialData={editingBudget} // Necesitas que BudgetGenerator acepte initialData
+              />
+            )}
+            {activeTab === 'history' && (
+              <BudgetHistory 
+                budgets={budgets} 
+                settings={settings} 
+                onEdit={handleEditBudget}
+                onDelete={handleDeleteBudget}
+              />
+            )}
             {activeTab === 'settings' && <SettingsView settings={settings} onUpdate={handleUpdateSettings} />}
           </div>
         </div>
