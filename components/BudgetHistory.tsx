@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Search, Eye, Share2, Trash2, Send, Download, X, Calendar, User, FileCheck, HardHat, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Search, Eye, Share2, Trash2, Send, Download, X, Calendar, User, FileCheck, HardHat, CheckCircle2, XCircle, Clock, Edit3 } from 'lucide-react';
 import { Budget, BusinessSettings } from '../types';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -8,14 +7,17 @@ import autoTable from 'jspdf-autotable';
 interface BudgetHistoryProps {
   budgets: Budget[];
   settings: BusinessSettings;
+  onEdit: (budget: Budget) => void; // Nueva prop para editar
+  onDelete: (budgetId: string) => void; // Nueva prop para borrar
 }
 
-const BudgetHistory: React.FC<BudgetHistoryProps> = ({ budgets, settings }) => {
+const BudgetHistory: React.FC<BudgetHistoryProps> = ({ budgets, settings, onEdit, onDelete }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null);
 
   const filtered = budgets.filter(b => b.client.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
+  // ... (Función generatePDF y sendWhatsApp se mantienen igual)
   const generatePDF = (budget: Budget) => {
     const doc = new jsPDF();
     const margin = 20;
@@ -120,6 +122,13 @@ const BudgetHistory: React.FC<BudgetHistoryProps> = ({ budgets, settings }) => {
     window.open(`https://wa.me/${b.client.phone.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
   };
 
+  const handleDelete = (id: string) => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar este presupuesto? Esta acción no se puede deshacer.')) {
+      onDelete(id);
+      setSelectedBudget(null);
+    }
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -142,6 +151,14 @@ const BudgetHistory: React.FC<BudgetHistoryProps> = ({ budgets, settings }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filtered.map(b => (
           <div key={b.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group relative overflow-hidden">
+            {/* Botón de Borrado Rápido */}
+            <button 
+              onClick={() => handleDelete(b.id)}
+              className="absolute top-4 right-4 z-20 p-2 text-slate-300 hover:text-red-500 transition-colors"
+            >
+              <Trash2 size={16} />
+            </button>
+
             <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-full -mr-16 -mt-16 group-hover:bg-orange-50 transition-colors"></div>
             
             <div className="relative z-10 flex flex-col h-full">
@@ -162,7 +179,7 @@ const BudgetHistory: React.FC<BudgetHistoryProps> = ({ budgets, settings }) => {
                     </span>
                   )}
                 </div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{new Date(b.date).toLocaleDateString()}</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-8">{new Date(b.date).toLocaleDateString()}</span>
               </div>
               
               <div className="mb-8">
@@ -176,26 +193,21 @@ const BudgetHistory: React.FC<BudgetHistoryProps> = ({ budgets, settings }) => {
               <div className="mt-auto pt-6 border-t border-slate-50 flex items-end justify-between">
                 <div>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Costo Total</p>
-                  <p className="text-3xl font-black text-slate-900 leading-none mt-1 italic">{settings.currency}{b.total.toLocaleString()}</p>
+                  <p className="text-3xl font-black text-slate-900 leading-none mt-1 italic">{settings.currency}${b.total.toLocaleString()}</p>
                 </div>
                 <div className="flex gap-2">
+                  <button 
+                    onClick={() => onEdit(b)}
+                    className="p-3 bg-orange-100 hover:bg-orange-200 text-orange-600 rounded-xl transition-all"
+                    title="Editar Presupuesto"
+                  >
+                    <Edit3 size={18} />
+                  </button>
                   <button 
                     onClick={() => setSelectedBudget(b)}
                     className="p-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-all"
                   >
                     <Eye size={18} />
-                  </button>
-                  <button 
-                    onClick={() => generatePDF(b)}
-                    className="p-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl transition-all shadow-lg shadow-slate-900/10"
-                  >
-                    <Download size={18} />
-                  </button>
-                  <button 
-                    onClick={() => sendWhatsApp(b)}
-                    className="p-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow-lg shadow-emerald-500/20 transition-all"
-                  >
-                    <Send size={18} />
                   </button>
                 </div>
               </div>
@@ -219,9 +231,18 @@ const BudgetHistory: React.FC<BudgetHistoryProps> = ({ budgets, settings }) => {
                   <h3 className="text-4xl font-black text-slate-900 mt-6 uppercase italic tracking-tighter">{selectedBudget.client.name}</h3>
                   <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mt-1">Expediente Técnico de Obra</p>
                 </div>
-                <button onClick={() => setSelectedBudget(null)} className="p-4 bg-slate-50 hover:bg-slate-100 rounded-2xl transition-all"><X size={28} /></button>
+                <div className="flex gap-2">
+                   <button 
+                    onClick={() => handleDelete(selectedBudget.id)}
+                    className="p-4 text-red-500 hover:bg-red-50 rounded-2xl transition-all"
+                  >
+                    <Trash2 size={24} />
+                  </button>
+                  <button onClick={() => setSelectedBudget(null)} className="p-4 bg-slate-50 hover:bg-slate-100 rounded-2xl transition-all"><X size={28} /></button>
+                </div>
               </div>
 
+              {/* ... (Sección de información técnica y tabla se mantienen igual) */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-12">
                 <div className="space-y-1">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Contacto</p>
@@ -255,8 +276,8 @@ const BudgetHistory: React.FC<BudgetHistoryProps> = ({ budgets, settings }) => {
                           <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">{i.unit}</p>
                         </td>
                         <td className="px-10 py-6 text-center font-black text-slate-400">{i.quantity}</td>
-                        <td className="px-10 py-6 text-right font-bold text-slate-500">{settings.currency}{i.price.toLocaleString()}</td>
-                        <td className="px-10 py-6 text-right font-black text-white text-lg">{settings.currency}{i.subtotal.toLocaleString()}</td>
+                        <td className="px-10 py-6 text-right font-bold text-slate-500">{settings.currency}${i.price.toLocaleString()}</td>
+                        <td className="px-10 py-6 text-right font-black text-white text-lg">{settings.currency}${i.subtotal.toLocaleString()}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -267,7 +288,7 @@ const BudgetHistory: React.FC<BudgetHistoryProps> = ({ budgets, settings }) => {
                 <div className="bg-slate-50 p-6 rounded-3xl flex items-center gap-10 border border-slate-200">
                    <div className="flex flex-col">
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Subtotal Obra</span>
-                      <span className="font-black text-slate-900 text-xl italic">{settings.currency}{selectedBudget.subtotal.toLocaleString()}</span>
+                      <span className="font-black text-slate-900 text-xl italic">{settings.currency}${selectedBudget.subtotal.toLocaleString()}</span>
                    </div>
                    <div className="w-0.5 h-12 bg-slate-200"></div>
                    <div className="flex flex-col">
@@ -278,24 +299,31 @@ const BudgetHistory: React.FC<BudgetHistoryProps> = ({ budgets, settings }) => {
 
                 <div className="text-right">
                   <p className="text-xs font-black text-orange-600 uppercase tracking-[0.3em] mb-2 italic">Total Presupuestado</p>
-                  <h5 className="text-7xl font-black text-slate-900 tracking-tighter italic">{settings.currency}{selectedBudget.total.toLocaleString()}</h5>
+                  <h5 className="text-7xl font-black text-slate-900 tracking-tighter italic">{settings.currency}${selectedBudget.total.toLocaleString()}</h5>
                 </div>
               </div>
 
               <div className="flex flex-wrap justify-end gap-4 mt-16">
                 <button 
+                  onClick={() => { onEdit(selectedBudget); setSelectedBudget(null); }}
+                  className="bg-orange-500 hover:bg-orange-600 text-white font-black px-8 py-6 rounded-2xl shadow-xl flex items-center gap-4 transition-all active:scale-95 uppercase italic tracking-tight"
+                >
+                  <Edit3 size={24} />
+                  Editar
+                </button>
+                <button 
                   onClick={() => generatePDF(selectedBudget)}
-                  className="bg-slate-900 hover:bg-slate-800 text-white font-black px-12 py-6 rounded-2xl shadow-xl flex items-center gap-4 transition-all active:scale-95 uppercase italic tracking-tight"
+                  className="bg-slate-900 hover:bg-slate-800 text-white font-black px-8 py-6 rounded-2xl shadow-xl flex items-center gap-4 transition-all active:scale-95 uppercase italic tracking-tight"
                 >
                   <Download size={24} />
-                  Descargar PDF
+                  PDF
                 </button>
                  <button 
                   onClick={() => sendWhatsApp(selectedBudget)}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-black px-12 py-6 rounded-2xl shadow-xl flex items-center gap-4 transition-all active:scale-95 uppercase italic tracking-tight"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-black px-8 py-6 rounded-2xl shadow-xl flex items-center gap-4 transition-all active:scale-95 uppercase italic tracking-tight"
                 >
                   <Send size={24} />
-                  Enviar WhatsApp
+                  WhatsApp
                 </button>
               </div>
             </div>
