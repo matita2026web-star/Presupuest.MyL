@@ -1,0 +1,91 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>PresuBuild PRO - MyL Ingeniería</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@500;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #f97316; /* Naranja/Amarillo Mano de Obra */
+      --steel-blue: #3A7CA5; /* Azul Materiales */
+      --success-green: #34C759; /* Verde Total */
+      --secondary: #0f172a;
+      --bg: #ffffff;
+    }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg);
+      color: var(--secondary);
+      -webkit-font-smoothing: antialiased;
+    }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    
+    .arch-grid {
+      background-image: 
+        radial-gradient(rgba(15, 23, 42, 0.05) 1px, transparent 0);
+      background-size: 24px 24px;
+    }
+
+    input, textarea, select {
+      font-size: 16px !important;
+      border-radius: 16px !important;
+      background: #f8fafc !important;
+      border: 2px solid transparent !important;
+      transition: all 0.25s ease !important;
+    }
+    input:focus {
+      border-color: var(--primary) !important;
+      background: #ffffff !important;
+      box-shadow: 0 10px 15px -3px rgba(249, 115, 22, 0.1) !important;
+    }
+
+    .btn-elite {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 0px #c2410c;
+    }
+    .btn-elite:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0px #c2410c;
+    }
+
+    .soft-shadow {
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.03), 0 10px 10px -5px rgba(0, 0, 0, 0.01);
+    }
+
+    @keyframes scaleIn {
+      from { transform: scale(0.98); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .animate-scale { animation: scaleIn 0.3s ease-out forwards; }
+    
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    .text-steel-blue { color: var(--steel-blue); }
+    .bg-steel-blue { background-color: var(--steel-blue); }
+    .border-steel-blue { border-color: var(--steel-blue); }
+    .text-success-green { color: var(--success-green); }
+    .bg-success-green { background-color: var(--success-green); }
+  </style>
+<script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
+    "lucide-react": "https://esm.sh/lucide-react@^0.463.0",
+    "jspdf": "https://esm.sh/jspdf@2.5.1",
+    "jspdf-autotable": "https://esm.sh/jspdf-autotable@3.8.2"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="arch-grid">
+  <div id="root"></div>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
