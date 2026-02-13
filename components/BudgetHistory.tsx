@@ -371,36 +371,35 @@ const BudgetHistory: React.FC<BudgetHistoryProps> = ({
         </div>
       )}
 
-      {/* 5. RESUMEN TÉCNICO AL FINAL (NUEVO) */}
-      <div className="bg-slate-950 rounded-[3rem] p-12 mt-12 relative overflow-hidden">
-         <div className="absolute top-0 right-0 p-10 opacity-10">
-            <HardHat size={180} className="text-white" />
-         </div>
-         <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <div>
-               <h3 className="text-4xl font-black text-white uppercase italic tracking-tighter mb-6">REPORTE <span className="text-amber-500">CONSOLIDADO</span></h3>
-               <p className="text-slate-400 text-sm font-medium leading-relaxed max-w-md">
-                 Sistema de gestión técnica optimizado para la trazabilidad de obras y control de presupuestos. 
-                 Todos los montos incluyen impuestos según la configuración de la constructora.
-               </p>
-            </div>
-            <div className="bg-white/5 backdrop-blur-md rounded-3xl p-8 border border-white/10 grid grid-cols-2 gap-8">
-               <div>
-                  <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-2">Proyectos Totales</p>
-                  <p className="text-4xl font-black text-white italic">{budgets.length}</p>
-               </div>
-               <div>
-                  <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-2">Tasa Aprobación</p>
-                  <p className="text-4xl font-black text-white italic">
-                    {budgets.length > 0 ? Math.round((budgets.filter(b => b.status === 'aceptado').length / budgets.length) * 100) : 0}%
-                  </p>
-               </div>
-            </div>
-         </div>
+      {/* 5. RESUMEN TÉCNICO AL FINAL */}
+<div className="bg-slate-950 rounded-[3rem] p-12 mt-12 relative overflow-hidden">
+  <div className="absolute top-0 right-0 p-10 opacity-10">
+    {/* Cambiamos HardHat por un icono de Lucide directo para evitar errores de referencia */}
+    <Search size={180} className="text-white" /> 
+  </div>
+  <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+    <div>
+      <h3 className="text-4xl font-black text-white uppercase italic tracking-tighter mb-6">
+        REPORTE <span className="text-amber-500">CONSOLIDADO</span>
+      </h3>
+      <p className="text-slate-400 text-sm font-medium leading-relaxed max-w-md">
+        Sistema de gestión técnica optimizado para la trazabilidad de obras y control de presupuestos. 
+      </p>
+    </div>
+    <div className="bg-white/5 backdrop-blur-md rounded-3xl p-8 border border-white/10 grid grid-cols-2 gap-8">
+      <div>
+        <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-2">Proyectos Totales</p>
+        <p className="text-4xl font-black text-white italic">{budgets.length}</p>
+      </div>
+      <div>
+        <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-2">Tasa Aprobación</p>
+        <p className="text-4xl font-black text-white italic">
+          {budgets.length > 0 ? Math.round((budgets.filter(b => b.status === 'aceptado').length / budgets.length) * 100) : 0}%
+        </p>
       </div>
     </div>
-  );
-};
+  </div>
+</div>
 
 // Icono decorativo HardHat
 const HardHat = ({ size, className }: { size: number, className: string }) => (
