@@ -3,11 +3,30 @@ import {
   Search, Trash2, Send, Download, Calendar, Clock, 
   AlertCircle, Edit3, CheckCircle, XCircle, Filter, 
   ChevronRight, FileText, Phone, User, Hash, MoreVertical,
-  ArrowUpRight, ExternalLink, Copy, Check
+  ArrowUpRight, ExternalLink, Copy, Check, HardHat as HardHatIcon // Renombrado para evitar conflicto
 } from 'lucide-react';
 import { Budget, BusinessSettings, BudgetStatus, BudgetItem } from '../types';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+
+// 1. DEFINICIÓN DEL ICONO (Movido arriba para que esté disponible en todo el scope)
+const HardHat = ({ size, className }: { size: number, className: string }) => (
+  <svg 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="1.5" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <path d="M2 18a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v2z" />
+    <path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5" />
+    <path d="M4 15v-3a6 6 0 0 1 12 0v3" />
+  </svg>
+);
 
 interface BudgetHistoryProps {
   budgets: Budget[];
@@ -79,14 +98,12 @@ const BudgetHistory: React.FC<BudgetHistoryProps> = ({
   // --- EXPORTACIÓN PDF ---
   const handleExportPDF = (budget: Budget) => {
     const doc = new jsPDF();
-    const primary = [15, 23, 42]; // Slate 900
-    const accent = [245, 158, 11]; // Amber 500
+    const primary = [15, 23, 42]; 
+    const accent = [245, 158, 11]; 
 
-    // Header decorativo
     doc.setFillColor(primary[0], primary[1], primary[2]);
     doc.rect(0, 0, 210, 45, 'F');
     
-    // Branding
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(24);
     doc.setFont('helvetica', 'bold');
@@ -98,7 +115,6 @@ const BudgetHistory: React.FC<BudgetHistoryProps> = ({
     doc.text(`ID: ${budget.id}`, 160, 25);
     doc.text(`FECHA: ${formatDate(budget.date)}`, 160, 32);
 
-    // Datos del Cliente
     doc.setTextColor(primary[0], primary[1], primary[2]);
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
@@ -109,7 +125,6 @@ const BudgetHistory: React.FC<BudgetHistoryProps> = ({
     doc.text(`Nombre: ${budget.client.name}`, 20, 70);
     doc.text(`Teléfono: ${budget.client.phone}`, 20, 76);
 
-    // Tabla de Items
     autoTable(doc, {
       startY: 85,
       head: [['RUBRO / DESCRIPCIÓN', 'CANT.', 'UNITARIO', 'SUBTOTAL']],
@@ -130,7 +145,6 @@ const BudgetHistory: React.FC<BudgetHistoryProps> = ({
       }
     });
 
-    // Totales
     const finalY = (doc as any).lastAutoTable.finalY + 15;
     doc.setFillColor(248, 250, 252);
     doc.rect(130, finalY - 8, 65, 25, 'F');
@@ -141,7 +155,6 @@ const BudgetHistory: React.FC<BudgetHistoryProps> = ({
     doc.setTextColor(accent[0], accent[1], accent[2]);
     doc.text(formatCurrency(budget.total), 195, finalY + 8, { align: 'right' });
 
-    // Footer
     doc.setFontSize(8);
     doc.setTextColor(100, 116, 139);
     doc.text(settings.address || '', 105, 285, { align: 'center' });
@@ -150,7 +163,6 @@ const BudgetHistory: React.FC<BudgetHistoryProps> = ({
     doc.save(`PRESUPUESTO_${budget.client.name.replace(/\s+/g, '_')}.pdf`);
   };
 
-  // --- COMUNICACIÓN WHATSAPP ---
   const handleWhatsApp = (budget: Budget) => {
     const text = `*PRESUPUESTO TÉCNICO - ${settings.name}*\n\n` +
       `Hola *${budget.client.name}*, adjuntamos el detalle de la cotización solicitado.\n\n` +
@@ -162,7 +174,6 @@ const BudgetHistory: React.FC<BudgetHistoryProps> = ({
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
   };
 
-  // --- FUNCIÓN COPIAR ID ---
   const copyToClipboard = (id: string) => {
     navigator.clipboard.writeText(id);
     setIsCopying(id);
@@ -171,7 +182,7 @@ const BudgetHistory: React.FC<BudgetHistoryProps> = ({
 
   return (
     <div className="space-y-6 animate-slide-up pb-32">
-      {/* 1. SECCIÓN DE ESTADÍSTICAS RÁPIDAS (NUEVO) */}
+      {/* SECCIÓN DE ESTADÍSTICAS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-slate-900 p-6 rounded-[2rem] text-white shadow-xl shadow-slate-200">
           <div className="flex justify-between items-start mb-4">
@@ -207,7 +218,7 @@ const BudgetHistory: React.FC<BudgetHistoryProps> = ({
         </div>
       </div>
 
-      {/* 2. HEADER DE CONTROL */}
+      {/* HEADER DE CONTROL */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 bg-white p-8 rounded-[2.5rem] border-2 border-slate-100 shadow-sm">
         <div className="flex items-center gap-5">
           <div className="w-2 h-12 bg-amber-500 rounded-full"></div>
@@ -243,18 +254,16 @@ const BudgetHistory: React.FC<BudgetHistoryProps> = ({
         </div>
       </div>
 
-      {/* 3. GRID DE PRESUPUESTOS */}
+      {/* GRID DE PRESUPUESTOS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {filtered.map(b => (
           <div 
             key={b.id} 
             className="group bg-white rounded-[3rem] border-2 border-slate-100 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 flex flex-col relative overflow-hidden"
           >
-            {/* Overlay decorativo de estado */}
             <div className={`absolute top-0 right-0 w-32 h-32 -mr-16 -mt-16 rounded-full opacity-5 transition-transform group-hover:scale-150 ${b.status === 'aceptado' ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
 
             <div className="p-10 flex-1 relative z-10">
-              {/* Header de Tarjeta */}
               <div className="flex justify-between items-start mb-8">
                 <div 
                   onClick={() => copyToClipboard(b.id)}
@@ -277,7 +286,6 @@ const BudgetHistory: React.FC<BudgetHistoryProps> = ({
                 </div>
               </div>
 
-              {/* Información Cliente */}
               <div className="mb-8">
                 <div className="flex items-center gap-3 mb-2">
                    <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-white text-xs font-black italic">
@@ -299,7 +307,6 @@ const BudgetHistory: React.FC<BudgetHistoryProps> = ({
                 </div>
               </div>
 
-              {/* Acciones de Exportación */}
               <div className="grid grid-cols-2 gap-3 mb-10">
                 <button 
                   onClick={() => handleExportPDF(b)}
@@ -315,7 +322,6 @@ const BudgetHistory: React.FC<BudgetHistoryProps> = ({
                 </button>
               </div>
 
-              {/* Footer de Tarjeta / Totales */}
               <div className="flex items-end justify-between border-t-2 border-slate-50 pt-8">
                 <div>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Presupuesto Final</p>
@@ -347,14 +353,12 @@ const BudgetHistory: React.FC<BudgetHistoryProps> = ({
                 </div>
               </div>
             </div>
-
-            {/* Indicador de Hover lateral */}
             <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-amber-500 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
           </div>
         ))}
       </div>
 
-      {/* 4. ESTADO VACÍO (NUEVO) */}
+      {/* ESTADO VACÍO */}
       {filtered.length === 0 && (
         <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[4rem] border-4 border-dashed border-slate-100">
           <div className="w-32 h-32 bg-slate-50 rounded-full flex items-center justify-center mb-8">
@@ -371,53 +375,37 @@ const BudgetHistory: React.FC<BudgetHistoryProps> = ({
         </div>
       )}
 
-      {/* 5. RESUMEN TÉCNICO AL FINAL */}
-<div className="bg-slate-950 rounded-[3rem] p-12 mt-12 relative overflow-hidden">
-  <div className="absolute top-0 right-0 p-10 opacity-10">
-    {/* Cambiamos HardHat por un icono de Lucide directo para evitar errores de referencia */}
-    <Search size={180} className="text-white" /> 
-  </div>
-  <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-    <div>
-      <h3 className="text-4xl font-black text-white uppercase italic tracking-tighter mb-6">
-        REPORTE <span className="text-amber-500">CONSOLIDADO</span>
-      </h3>
-      <p className="text-slate-400 text-sm font-medium leading-relaxed max-w-md">
-        Sistema de gestión técnica optimizado para la trazabilidad de obras y control de presupuestos. 
-      </p>
-    </div>
-    <div className="bg-white/5 backdrop-blur-md rounded-3xl p-8 border border-white/10 grid grid-cols-2 gap-8">
-      <div>
-        <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-2">Proyectos Totales</p>
-        <p className="text-4xl font-black text-white italic">{budgets.length}</p>
+      {/* RESUMEN TÉCNICO AL FINAL */}
+      <div className="bg-slate-950 rounded-[3rem] p-12 mt-12 relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-10 opacity-10">
+          {/* Usamos el componente HardHat que definimos arriba */}
+          <HardHat size={180} className="text-white" /> 
+        </div>
+        <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          <div>
+            <h3 className="text-4xl font-black text-white uppercase italic tracking-tighter mb-6">
+              REPORTE <span className="text-amber-500">CONSOLIDADO</span>
+            </h3>
+            <p className="text-slate-400 text-sm font-medium leading-relaxed max-w-md">
+              Sistema de gestión técnica optimizado para la trazabilidad de obras y control de presupuestos. 
+            </p>
+          </div>
+          <div className="bg-white/5 backdrop-blur-md rounded-3xl p-8 border border-white/10 grid grid-cols-2 gap-8">
+            <div>
+              <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-2">Proyectos Totales</p>
+              <p className="text-4xl font-black text-white italic">{budgets.length}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-2">Tasa Aprobación</p>
+              <p className="text-4xl font-black text-white italic">
+                {budgets.length > 0 ? Math.round((budgets.filter(b => b.status === 'aceptado').length / budgets.length) * 100) : 0}%
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
-      <div>
-        <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-2">Tasa Aprobación</p>
-        <p className="text-4xl font-black text-white italic">
-          {budgets.length > 0 ? Math.round((budgets.filter(b => b.status === 'aceptado').length / budgets.length) * 100) : 0}%
-        </p>
-      </div>
     </div>
-  </div>
-</div>
-
-// Icono decorativo HardHat
-const HardHat = ({ size, className }: { size: number, className: string }) => (
-  <svg 
-    width={size} 
-    height={size} 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="1.5" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
-    className={className}
-  >
-    <path d="M2 18a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v2z" />
-    <path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5" />
-    <path d="M4 15v-3a6 6 0 0 1 12 0v3" />
-  </svg>
-);
+  );
+};
 
 export default BudgetHistory;
