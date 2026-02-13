@@ -334,11 +334,12 @@ const App: React.FC = () => {
                 />
               )}
               {activeTab === 'history' && (
-                <BudgetHistory 
-                  budgets={budgets} 
-                  settings={settings} 
+                <BudgetHistory
+                  budgets={budgets}
+                  settings={settings}
                   onEdit={handleEditBudget}
                   onDelete={handleDeleteBudget}
+                  onUpdateStatus={handleUpdateBudgetStatus}
                 />
               )}
               {activeTab === 'settings' && (
