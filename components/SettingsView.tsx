@@ -41,7 +41,6 @@ const SettingsView: React.FC<SettingsProps> = ({ settings, onUpdate }) => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validar tamaño (opcional pero recomendado para localStorage/DB)
       if (file.size > 1024 * 1024) {
         alert("El logo es muy pesado. Intenta con uno de menos de 1MB.");
         return;
@@ -68,6 +67,7 @@ const SettingsView: React.FC<SettingsProps> = ({ settings, onUpdate }) => {
            <p className="text-slate-500 font-medium text-lg mt-2">Personalice la identidad de su constructora en todos los documentos.</p>
         </div>
         <div className="w-20 h-20 bg-slate-900 rounded-3xl flex items-center justify-center text-orange-500 shadow-xl shadow-slate-200">
+           {/* Aquí usamos el HardHat de lucide-react importado arriba, sin SVG manuales conflictivos */}
            <HardHat size={40} />
         </div>
       </div>
@@ -217,8 +217,7 @@ const SettingsView: React.FC<SettingsProps> = ({ settings, onUpdate }) => {
               </div>
             </div>
 
-            {/* Decoración de fondo para la tarjeta oscura */}
-            <div className="absolute -bottom-10 -right-10 opacity-5 rotate-12">
+            <div className="absolute -bottom-10 -right-10 opacity-5 rotate-12 text-white">
                <Building2 size={200} />
             </div>
           </div>
