@@ -3,9 +3,9 @@ import {
   Search, Trash2, Send, Download, Calendar, Clock, 
   AlertCircle, Edit3, CheckCircle, XCircle, Filter, 
   ChevronRight, FileText, Phone, User, Hash, MoreVertical,
-  ArrowUpRight, ExternalLink, Copy, Check, HardHat // Importado de lucide-react
+  ArrowUpRight, ExternalLink, Copy, Check, HardHat 
 } from 'lucide-react';
-import { Budget, BusinessSettings, BudgetStatus, BudgetItem } from '../types';
+import { Budget, BusinessSettings, BudgetStatus } from '../types';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -27,12 +27,10 @@ const BudgetHistory: React.FC<BudgetHistoryProps> = ({
   // --- ESTADOS ---
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<BudgetStatus | 'todos'>('todos');
-  const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null);
   const [isCopying, setIsCopying] = useState<string | null>(null);
 
   // --- LÓGICA DE FILTRADO Y CÁLCULOS ---
   const filtered = useMemo(() => {
-    // Verificación de seguridad para evitar errores si budgets es undefined
     const list = budgets || [];
     return list.filter(b => {
       const searchStr = searchTerm.toLowerCase();
@@ -85,8 +83,8 @@ const BudgetHistory: React.FC<BudgetHistoryProps> = ({
   // --- EXPORTACIÓN PDF ---
   const handleExportPDF = (budget: Budget) => {
     const doc = new jsPDF();
-    const primary = [15, 23, 42]; 
-    const accent = [245, 158, 11]; 
+    const primary: [number, number, number] = [15, 23, 42]; 
+    const accent: [number, number, number] = [245, 158, 11]; 
 
     doc.setFillColor(primary[0], primary[1], primary[2]);
     doc.rect(0, 0, 210, 45, 'F');
@@ -116,7 +114,7 @@ const BudgetHistory: React.FC<BudgetHistoryProps> = ({
       startY: 85,
       head: [['RUBRO / DESCRIPCIÓN', 'CANT.', 'UNITARIO', 'SUBTOTAL']],
       body: budget.items.map(item => [
-        item.description.toUpperCase(),
+        item.name.toUpperCase(), // CORRECCIÓN: Usar item.name en lugar de item.description
         item.quantity,
         formatCurrency(item.price),
         formatCurrency(item.quantity * item.price)
@@ -306,7 +304,7 @@ const BudgetHistory: React.FC<BudgetHistoryProps> = ({
                   <button onClick={() => onEdit(b)} className="w-14 h-14 bg-slate-900 text-white rounded-[1.2rem] flex items-center justify-center hover:bg-amber-500 hover:text-slate-950 transition-all shadow-lg active:scale-90 group/edit">
                     <Edit3 size={24} className="group-hover/edit:rotate-12 transition-transform" />
                   </button>
-                  <button onClick={() => { if(window.confirm('¿ELIMINAR ESTE REGISTRO?')) onDelete(b.id); }} className="w-14 h-14 bg-red-50 text-red-500 rounded-[1.2rem] flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm group/del">
+                  <button onClick={() => { if(window.confirm('¿ELIMINAR ESTE REGISTRO DE FORMA PERMANENTE?')) onDelete(b.id); }} className="w-14 h-14 bg-red-50 text-red-500 rounded-[1.2rem] flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm group/del">
                     <Trash2 size={24} className="group-hover/del:animate-bounce" />
                   </button>
                 </div>
@@ -330,7 +328,6 @@ const BudgetHistory: React.FC<BudgetHistoryProps> = ({
 
       <div className="bg-slate-950 rounded-[3rem] p-12 mt-12 relative overflow-hidden">
          <div className="absolute top-0 right-0 p-10 opacity-10">
-            {/* Usamos el HardHat de lucide-react importado */}
             <HardHat size={180} className="text-white" />
          </div>
          <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
@@ -359,4 +356,3 @@ const BudgetHistory: React.FC<BudgetHistoryProps> = ({
 };
 
 export default BudgetHistory;
-
